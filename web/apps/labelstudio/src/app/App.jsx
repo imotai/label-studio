@@ -1,12 +1,11 @@
 /* global Sentry */
 
 import { createBrowserHistory } from "history";
-import React from "react";
 import { render } from "react-dom";
 import { Router } from "react-router-dom";
 import { LEAVE_BLOCKER_KEY, leaveBlockerCallback } from "../components/LeaveBlocker/LeaveBlocker";
 import { initSentry } from "../config/Sentry";
-import { ApiProvider } from "../providers/ApiProvider";
+import { ApiProvider, useAPI } from "../providers/ApiProvider";
 import { AppStoreProvider } from "../providers/AppStoreProvider";
 import { ConfigProvider } from "../providers/ConfigProvider";
 import { MultiProvider } from "../providers/MultiProvider";
@@ -17,8 +16,9 @@ import "./App.scss";
 import { AsyncPage } from "./AsyncPage/AsyncPage";
 import ErrorBoundary from "./ErrorBoundary";
 import { RootPage } from "./RootPage";
-import { FF_OPTIC_2, FF_UNSAVED_CHANGES, isFF } from "../utils/feature-flags";
-import { ToastProvider, ToastViewport } from "../components/Toast/Toast";
+import { FF_OPTIC_2, FF_UNSAVED_CHANGES, FF_PRODUCT_TOUR, isFF } from "../utils/feature-flags";
+import { TourProvider } from "@humansignal/core";
+import { ToastProvider, ToastViewport } from "@humansignal/ui";
 
 const baseURL = new URL(APP_SETTINGS.hostname || location.origin);
 export const UNBLOCK_HISTORY_MESSAGE = "UNBLOCK_HISTORY";
@@ -62,7 +62,8 @@ const App = ({ content }) => {
             <RoutesProvider key="rotes" />,
             <ProjectProvider key="project" />,
             <ToastProvider key="toast" />,
-          ]}
+            isFF(FF_PRODUCT_TOUR) && <TourProvider useAPI={useAPI} />,
+          ].filter(Boolean)}
         >
           <AsyncPage>
             <DraftGuard />

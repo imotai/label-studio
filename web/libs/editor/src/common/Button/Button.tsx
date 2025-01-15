@@ -31,9 +31,13 @@ export interface ButtonProps extends HTMLButtonProps {
   danger?: boolean;
   style?: CSSProperties;
   hotkey?: keyof typeof Hotkey.keymap;
+  hotkeyScope?: string;
   tooltip?: string;
   tooltipTheme?: "light" | "dark";
   nopadding?: boolean;
+  // Block props
+  // @todo can be imported/infered from Block
+  mod?: Record<string, any>;
 }
 
 export interface ButtonGroupProps {
@@ -60,6 +64,7 @@ export const Button: ButtonType<ButtonProps> = forwardRef(
       primary,
       danger,
       hotkey,
+      hotkeyScope,
       tooltip,
       tooltipTheme = "light",
       nopadding,
@@ -98,7 +103,7 @@ export const Button: ButtonType<ButtonProps> = forwardRef(
       }
     }, [icon, size]);
 
-    useHotkey(hotkey, rest.onClick as unknown as Keymaster.KeyHandler);
+    useHotkey(hotkey, rest.onClick as unknown as Keymaster.KeyHandler, hotkeyScope);
 
     const buttonBody = (
       <Block name="button" mod={mods} mix={className} ref={ref} tag={finalTag} type={type} {...rest}>

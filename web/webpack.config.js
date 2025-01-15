@@ -20,9 +20,10 @@ const css_prefix = "lsf-";
 const mode = process.env.BUILD_MODULE ? "production" : process.env.NODE_ENV || "development";
 const isDevelopment = mode !== "production";
 const devtool = process.env.NODE_ENV === "production" ? "source-map" : "cheap-module-source-map";
-const FRONTEND_HOSTNAME = process.env.FRONTEND_HOSTNAME || "http://localhost:8010";
+const FRONTEND_HMR = process.env.FRONTEND_HMR === "true";
+const FRONTEND_HOSTNAME = FRONTEND_HMR ? process.env.FRONTEND_HOSTNAME || "http://localhost:8010" : "";
 const DJANGO_HOSTNAME = process.env.DJANGO_HOSTNAME || "http://localhost:8080";
-const HMR_PORT = +new URL(FRONTEND_HOSTNAME).port;
+const HMR_PORT = FRONTEND_HMR ? +new URL(FRONTEND_HOSTNAME).port : 8010;
 
 const LOCAL_ENV = {
   NODE_ENV: mode,
@@ -231,6 +232,15 @@ module.exports = composePlugins(
       };
     }
 
+    config.resolve.alias = {
+      // Common dependencies across at least two sub-packages
+      react: path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+      "react-joyride": path.resolve(__dirname, "node_modules/react-joyride"),
+      "@humansignal/ui": path.resolve(__dirname, "libs/ui"),
+      "@humansignal/core": path.resolve(__dirname, "libs/core"),
+    };
+
     return merge(config, {
       devtool,
       mode,
@@ -256,11 +266,14 @@ module.exports = composePlugins(
               allowedHosts: "all", // Allow access from Django's server
               proxy: [
                 {
-                  router: {
-                    "/api": `${DJANGO_HOSTNAME}/api`, // Proxy api requests to Django's server
-                  },
+                  context: ["/api"],
+                  target: DJANGO_HOSTNAME,
                 },
               ],
+              historyApiFallback: {
+                index: "/index.html",
+                disableDotRule: true,
+              },
             },
     });
   },

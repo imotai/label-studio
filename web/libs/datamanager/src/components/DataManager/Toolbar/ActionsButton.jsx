@@ -49,6 +49,7 @@ export const ActionsButton = injector(
           onOk() {
             const body = formRef.current?.assembleFormData({ asJSON: true });
 
+            store.SDK.invoke("actionDialogOk", action.id, { body });
             store.invokeAction(action.id, { body });
           },
         });
@@ -154,6 +155,7 @@ export const ActionsButton = injector(
             <Menu size="compact">{actionButtons}</Menu>
           )
         }
+        openUpwardForShortViewport={false}
         disabled={!hasSelected}
         onToggle={(visible) => isFFLOPSE3 && setIsOpen(visible)}
       >

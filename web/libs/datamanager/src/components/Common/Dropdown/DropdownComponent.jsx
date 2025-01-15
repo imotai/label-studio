@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { Block, cn } from "../../../utils/bem";
+import clsx from "clsx";
+import { cn } from "../../../utils/bem";
 import { alignElements } from "../../../utils/dom";
 import { aroundTransition } from "../../../utils/transition";
 import "./Dropdown.scss";
@@ -17,7 +18,7 @@ export const Dropdown = React.forwardRef(({ animated = true, visible = false, ..
   const { triggerRef } = React.useContext(DropdownContext) ?? {};
   const isInline = triggerRef === undefined;
 
-  const { children, align } = props;
+  const { children, align, openUpwardForShortViewport } = props;
   const [currentVisible, setVisible] = React.useState(visible);
   const [offset, setOffset] = React.useState({});
   const [visibility, setVisibility] = React.useState(visible ? "visible" : null);
@@ -25,7 +26,13 @@ export const Dropdown = React.forwardRef(({ animated = true, visible = false, ..
   const calculatePosition = React.useCallback(() => {
     const dropdownEl = dropdown.current;
     const parent = triggerRef?.current ?? dropdownEl.parentNode;
-    const { left, top } = alignElements(parent, dropdownEl, align ?? "bottom-left");
+    const { left, top } = alignElements(
+      parent,
+      dropdownEl,
+      align ?? "bottom-left",
+      0,
+      openUpwardForShortViewport ?? true,
+    );
 
     setOffset({ left, top });
   }, [triggerRef]);
@@ -145,17 +152,15 @@ export const Dropdown = React.forwardRef(({ animated = true, visible = false, ..
     ...(offset ?? {}),
     zIndex: 1000 + dropdownIndex,
   };
-
   const result = (
-    <Block
+    <div
       ref={dropdown}
-      name="dropdown-dm"
-      mix={[props.className, visibilityClasses]}
+      className={clsx(rootName.toString(), rootName.mix([props.className, visibilityClasses]).toString())}
       style={compositeStyles}
       onClick={(e) => e.stopPropagation()}
     >
       {content}
-    </Block>
+    </div>
   );
 
   return props.inline === true ? result : ReactDOM.createPortal(result, document.body);
