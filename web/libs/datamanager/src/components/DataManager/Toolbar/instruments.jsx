@@ -1,4 +1,4 @@
-import { FaAngleDown, FaCaretDown, FaChevronDown } from "react-icons/fa";
+import { FaAngleDown, FaCaretDown } from "react-icons/fa";
 import { Block } from "../../../utils/bem";
 import { FF_LOPS_E_10, FF_SELF_SERVE, isFF } from "../../../utils/feature-flags";
 import { ErrorBox } from "../../Common/ErrorBox";
@@ -17,7 +17,7 @@ import { RefreshButton } from "./RefreshButton";
 import { ViewToggle } from "./ViewToggle";
 
 const style = {
-  minWidth: "110px",
+  minWidth: "80px",
   justifyContent: "space-between",
 };
 
@@ -90,6 +90,7 @@ export const instruments = {
         title={"Columns"}
         size={size}
         style={style}
+        openUpwardForShortViewport={false}
       />
     );
   },

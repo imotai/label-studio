@@ -10,6 +10,7 @@ import { observer, Provider } from "mobx-react";
  * Core
  */
 import Tree from "../../core/Tree";
+import { CommentsOverlay } from "../InteractiveOverlays/CommentsOverlay";
 import { TreeValidation } from "../TreeValidation/TreeValidation";
 
 /**
@@ -24,8 +25,17 @@ import "../../tags/visual";
  */
 import { Space } from "../../common/Space/Space";
 import { Button } from "../../common/Button/Button";
-import { Block, cn, Elem } from "../../utils/bem";
-import { FF_DEV_1170, FF_DEV_3873, FF_LSDV_4620_3_ML, FF_SIMPLE_INIT, isFF } from "../../utils/feature-flags";
+import { Block, Elem } from "../../utils/bem";
+import { isSelfServe } from "../../utils/billing";
+import {
+  FF_BULK_ANNOTATION,
+  FF_DEV_1170,
+  FF_DEV_3873,
+  FF_LSDV_4620_3_ML,
+  FF_PER_FIELD_COMMENTS,
+  FF_SIMPLE_INIT,
+  isFF,
+} from "../../utils/feature-flags";
 import { sanitizeHtml } from "../../utils/html";
 import { reactCleaner } from "../../utils/reactCleaner";
 import { guidGenerator } from "../../utils/unique";
@@ -40,7 +50,7 @@ import { BottomBar } from "../BottomBar/BottomBar";
 import Debug from "../Debug";
 import Grid from "./Grid";
 import { InstructionsModal } from "../InstructionsModal/InstructionsModal";
-import { RelationsOverlay } from "../RelationsOverlay/RelationsOverlay";
+import { RelationsOverlay } from "../InteractiveOverlays/RelationsOverlay";
 import Segment from "../Segment/Segment";
 import Settings from "../Settings/Settings";
 import { SidebarTabs } from "../SidebarTabs/SidebarTabs";
@@ -95,9 +105,11 @@ class App extends Component {
       >
         <Result status="success" title={getEnv(this.props.store).messages.NO_NEXT_TASK} />
         <Block name="sub__result">You have completed all tasks in the queue!</Block>
-        <Button onClick={(e) => store.prevTask(e, true)} look="outlined" style={{ margin: "16px 0" }}>
-          Go to Previous Task
-        </Button>
+        {store.taskHistory.length > 0 && (
+          <Button onClick={(e) => store.prevTask(e, true)} look="outlined" style={{ margin: "16px 0" }}>
+            Go to Previous Task
+          </Button>
+        )}
       </Block>
     );
   }
@@ -148,6 +160,7 @@ class App extends Component {
         <Elem name="annotation">
           {<Annotation root={root} annotation={as.selected} />}
           {this.renderRelations(as.selected)}
+          {isFF(FF_PER_FIELD_COMMENTS) && this.renderCommentsOverlay(as.selected)}
         </Elem>
         {!isFF(FF_DEV_3873) && getRoot(as).hasInterface("infobar") && this._renderInfobar(as)}
       </Block>
@@ -193,6 +206,14 @@ class App extends Component {
     );
   }
 
+  renderCommentsOverlay(selectedAnnotation) {
+    const { store } = this.props;
+    const { commentStore } = store;
+
+    if (!store.hasInterface("annotations:comments") || !commentStore.isCommentable) return null;
+    return <CommentsOverlay commentStore={commentStore} annotation={selectedAnnotation} />;
+  }
+
   render() {
     const { store } = this.props;
     const as = store.annotationStore;
@@ -220,6 +241,7 @@ class App extends Component {
       </Block>
     );
 
+    const isBulkMode = isFF(FF_BULK_ANNOTATION) && !isSelfServe() && store.hasInterface("annotation:bulk");
     const outlinerEnabled = isFF(FF_DEV_1170);
     const newUIEnabled = isFF(FF_DEV_3873);
 
@@ -235,7 +257,7 @@ class App extends Component {
             <InstructionsModal
               visible={store.showingDescription}
               onCancel={() => store.toggleDescription()}
-              title="Labeling Instructions"
+              title={store.hasInterface("review") ? "Review Instructions" : "Labeling Instructions"}
             >
               {store.description}
             </InstructionsModal>
@@ -261,16 +283,25 @@ class App extends Component {
           >
             {outlinerEnabled ? (
               newUIEnabled ? (
-                <SideTabsPanels
-                  panelsHidden={viewingAll}
-                  currentEntity={as.selectedHistory ?? as.selected}
-                  regions={as.selected.regionStore}
-                  showComments={store.hasInterface("annotations:comments")}
-                  focusTab={store.commentStore.tooltipMessage ? "comments" : null}
-                >
-                  {mainContent}
-                  {store.hasInterface("topbar") && <BottomBar store={store} />}
-                </SideTabsPanels>
+                isBulkMode ? (
+                  <>
+                    {mainContent}
+                    {store.hasInterface("topbar") && <BottomBar store={store} />}
+                  </>
+                ) : (
+                  <SideTabsPanels
+                    panelsHidden={viewingAll}
+                    currentEntity={as.selectedHistory ?? as.selected}
+                    regions={as.selected.regionStore}
+                    showComments={store.hasInterface("annotations:comments")}
+                    focusTab={store.commentStore.tooltipMessage ? "comments" : null}
+                  >
+                    {mainContent}
+                    {store.hasInterface("topbar") && <BottomBar store={store} />}
+                  </SideTabsPanels>
+                )
+              ) : isBulkMode ? (
+                <>{mainContent}</>
               ) : (
                 <SidePanels
                   panelsHidden={viewingAll}

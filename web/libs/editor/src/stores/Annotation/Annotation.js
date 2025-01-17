@@ -1,6 +1,5 @@
 import throttle from "lodash.throttle";
 import { destroy, detach, flow, getEnv, getParent, getRoot, isAlive, onSnapshot, types } from "mobx-state-tree";
-import Constants from "../../core/Constants";
 import { errorBuilder } from "../../core/DataValidator/ConfigValidator";
 import { guidGenerator } from "../../core/Helpers";
 import { Hotkey } from "../../core/Hotkey";
@@ -26,6 +25,7 @@ import { CommentStore } from "../Comment/CommentStore";
 import RegionStore from "../RegionStore";
 import RelationStore from "../RelationStore";
 import { UserExtended } from "../UserStore";
+import { LinkingModes } from "./LinkingModes";
 
 const hotkeys = Hotkey("Annotations", "Annotations");
 
@@ -96,8 +96,8 @@ const TrackedState = types.model("TrackedState", {
   relationStore: types.optional(RelationStore, {}),
 });
 
-export const Annotation = types
-  .model("Annotation", {
+const _Annotation = types
+  .model("AnnotationBase", {
     id: types.identifier,
     // @todo this value used `guidGenerator(5)` as default value before
     // @todo but it calculates once, so all the annotations have the same pk
@@ -145,8 +145,6 @@ export const Annotation = types
 
     editable: types.optional(types.boolean, true),
     readonly: types.optional(types.boolean, false),
-
-    relationMode: types.optional(types.boolean, false),
 
     suggestions: types.map(Area),
 
@@ -310,8 +308,22 @@ export const Annotation = types
       });
     },
 
+    get isNonEditableDraft() {
+      const isKnownUsers = !!self.user && !!self.store.user;
+      // If we do not know what user created draft
+      // and who we are, then, we shouldn't prevent the ability to edit annotation
+      // because we can't predict is it our draft or not.
+      // It most probably could be relevant for standalone `lsf`
+      if (!isKnownUsers) return false;
+
+      // If there is no `pk` than there  is no annotation in DataBase
+      const isDraft = self.pk === null;
+      const isNonEditable = self.user.id !== self.store.user.id;
+      return isDraft && isNonEditable;
+    },
+
     isReadOnly() {
-      return self.readonly || !self.editable;
+      return self.isNonEditableDraft || self.readonly || !self.editable;
     },
   }))
   .volatile(() => ({
@@ -361,7 +373,7 @@ export const Annotation = types
       if (self.type === "annotation") self.setInitialValues();
     },
 
-    setEdit(val) {
+    setEditable(val) {
       self.editable = val;
     },
 
@@ -489,22 +501,6 @@ export const Annotation = types
       destroy(area);
     },
 
-    startRelationMode(node1) {
-      self._relationObj = node1;
-      self.relationMode = true;
-
-      document.body.style.cursor = Constants.CHOOSE_CURSOR;
-    },
-
-    stopRelationMode() {
-      document.body.style.cursor = Constants.DEFAULT_CURSOR;
-
-      self._relationObj = null;
-      self.relationMode = false;
-
-      self.regionStore.unhighlightAll();
-    },
-
     deleteAllRegions({ deleteReadOnly = false } = {}) {
       let regions = Array.from(self.areas.values());
 
@@ -533,9 +529,9 @@ export const Annotation = types
     addRegion(reg) {
       self.regionStore.unselectAll(true);
 
-      if (self.relationMode) {
-        self.addRelation(reg);
-        self.stopRelationMode();
+      if (self.isLinkingMode) {
+        self.addLinkedRegion(reg);
+        self.stopLinkingMode();
       }
     },
 
@@ -547,10 +543,6 @@ export const Annotation = types
           mainViewTag.unselectAll && mainViewTag.unselectAll();
           mainViewTag.perRegionCleanup && mainViewTag.perRegionCleanup();
         });
-    },
-
-    addRelation(reg) {
-      self.relationStore.addRelation(self._relationObj, reg);
     },
 
     validate() {
@@ -581,7 +573,7 @@ export const Annotation = types
         }
       });
 
-      self.stopRelationMode();
+      self.stopLinkingMode();
       self.unselectAll();
     },
 
@@ -896,7 +888,7 @@ export const Annotation = types
           else audioNode = node;
 
           node.hotkey = comb;
-          hotkeys.addKey(comb, node.onHotKey, "Play an audio", `${Hotkey.DEFAULT_SCOPE},${Hotkey.INPUT_SCOPE}`);
+          hotkeys.addKey(comb, node.onHotKey, "Play an audio", Hotkey.ALL_SCOPES);
 
           audiosNum++;
         }
@@ -1432,3 +1424,5 @@ export const Annotation = types
       self.areas.forEach((area) => area.setReady && area.setReady(false));
     },
   }));
+
+export const Annotation = types.compose("Annotation", LinkingModes, _Annotation);

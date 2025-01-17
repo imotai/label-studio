@@ -1,6 +1,8 @@
 import { IconInfoOutline, LsSettingsAlt } from "../../assets/icons";
 import { Button } from "../../common/Button/Button";
 import { Elem } from "../../utils/bem";
+import { isSelfServe } from "../../utils/billing";
+import { FF_BULK_ANNOTATION } from "../../utils/feature-flags";
 import { EditingHistory } from "./HistoryActions";
 import { DynamicPreannotationsToggle } from "../AnnotationTab/DynamicPreannotationsToggle";
 import { AutoAcceptToggle } from "../AnnotationTab/AutoAcceptToggle";
@@ -12,6 +14,7 @@ export const Actions = ({ store }) => {
   const entity = annotationStore.selected;
   const isPrediction = entity?.type === "prediction";
   const isViewAll = annotationStore.viewingAll === true;
+  const isBulkMode = isFF(FF_BULK_ANNOTATION) && !isSelfServe() && store.hasInterface("annotation:bulk");
 
   return (
     <Elem name="section">
@@ -21,7 +24,6 @@ export const Actions = ({ store }) => {
         <Tooltip placement="topLeft" title="Show instructions">
           <Button
             icon={<IconInfoOutline style={{ width: 20, height: 20 }} />}
-            primary={store.showingDescription}
             type="text"
             aria-label="Instructions"
             onClick={() => store.toggleDescription()}
@@ -47,7 +49,7 @@ export const Actions = ({ store }) => {
         />
       </Tooltip>
 
-      {store.hasInterface("ground-truth") && <GroundTruth entity={entity} />}
+      {store.hasInterface("ground-truth") && !isBulkMode && <GroundTruth entity={entity} />}
 
       {!isViewAll && (
         <Elem name="section">

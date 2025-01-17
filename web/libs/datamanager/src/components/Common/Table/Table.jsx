@@ -1,5 +1,5 @@
 import { observer } from "mobx-react";
-import React, { createContext, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaCode } from "react-icons/fa";
 import { RiCodeLine } from "react-icons/ri";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -13,11 +13,11 @@ import { modal } from "../Modal/Modal";
 import { Tooltip } from "../Tooltip/Tooltip";
 import "./Table.scss";
 import { TableCheckboxCell } from "./TableCheckbox";
-import { TableBlock, TableContext, TableElem } from "./TableContext";
+import { tableCN, TableContext } from "./TableContext";
 import { TableHead } from "./TableHead/TableHead";
 import { TableRow } from "./TableRow/TableRow";
 import { prepareColumns } from "./utils";
-import { Block } from "../../../utils/bem";
+import { cn } from "../../../utils/bem";
 import { FieldsButton } from "../FieldsButton";
 import { LsGear, LsGearNewUI } from "../../../assets/icons";
 import { FF_DEV_3873, FF_LOPS_E_10, FF_LOPS_E_3, isFF } from "../../../utils/feature-flags";
@@ -84,14 +84,17 @@ export const Table = observer(
               indeterminate={selectedItems.isIndeterminate}
               onChange={() => props.onSelectAll()}
               className="select-all"
+              ariaLabel={`${selectedItems.isAllSelected ? "Unselect" : "Select"} all rows`}
             />
           );
         },
         Cell: ({ data }) => {
+          const isChecked = selectedItems.isSelected(data.id);
           return (
             <TableCheckboxCell
-              checked={selectedItems.isSelected(data.id)}
+              checked={isChecked}
               onChange={() => props.onSelectRow(data.id)}
+              ariaLabel={`${isChecked ? "Unselect" : "Select"} Task ${data.id}`}
             />
           );
         },
@@ -282,18 +285,19 @@ export const Table = observer(
       tableWrapper.current?.firstChild?.firstChild.offsetWidth -
         tableWrapper.current?.firstChild?.firstChild?.firstChild.offsetWidth || 0;
 
+    const columnsSelectorCN = cn("columns__selector");
     return (
       <>
         {view.root.isLabeling && (
-          <Block
-            name="columns__selector"
+          <div
+            className={columnsSelectorCN.toString()}
             style={{
               right,
             }}
           >
             {isFF(FF_DEV_3873) ? (
               <FieldsButton
-                className={"columns__selector__button-new"}
+                className={columnsSelectorCN.elem("button-new").toString()}
                 wrapper={FieldsButton.Checkbox}
                 icon={<LsGearNewUI />}
                 style={{ padding: "0" }}
@@ -313,9 +317,9 @@ export const Table = observer(
                 }}
               />
             )}
-          </Block>
+          </div>
         )}
-        <TableBlock ref={tableWrapper} name="table" mod={{ fit: props.fitToContent }}>
+        <div ref={tableWrapper} className={tableCN.mod({ fit: props.fitToContent }).toString()}>
           <TableContext.Provider value={contextValue}>
             <StickyList
               ref={listRef}
@@ -335,7 +339,7 @@ export const Table = observer(
               {renderRow}
             </StickyList>
           </TableContext.Provider>
-        </TableBlock>
+        </div>
       </>
     );
   },
@@ -385,7 +389,7 @@ const StickyList = observer(
 
     return (
       <StickyListContext.Provider value={itemData}>
-        <TableElem tag={AutoSizer} name="auto-size">
+        <AutoSizer className={tableCN.elem("auto-size")}>
           {({ width, height }) => (
             <InfiniteLoader
               ref={listRef}
@@ -396,9 +400,8 @@ const StickyList = observer(
               minimumBatchSize={30}
             >
               {({ onItemsRendered, ref }) => (
-                <TableElem
-                  name="virual"
-                  tag={VariableSizeList}
+                <VariableSizeList
+                  className={tableCN.elem("virual").toString()}
                   {...rest}
                   ref={ref}
                   width={width}
@@ -409,11 +412,11 @@ const StickyList = observer(
                   initialScrollOffset={initialScrollOffset?.(height) ?? 0}
                 >
                   {ItemWrapper}
-                </TableElem>
+                </VariableSizeList>
               )}
             </InfiniteLoader>
           )}
-        </TableElem>
+        </AutoSizer>
       </StickyListContext.Provider>
     );
   }),
@@ -427,9 +430,8 @@ const innerElementType = forwardRef(({ children, ...rest }, ref) => {
       {({ stickyItems, stickyItemsHeight, StickyComponent }) => (
         <div ref={ref} {...rest}>
           {stickyItems.map((index) => (
-            <TableElem
-              name="sticky-header"
-              tag={StickyComponent}
+            <StickyComponent
+              className={tableCN.elem("sticky-header").toString()}
               key={index}
               index={index}
               style={{

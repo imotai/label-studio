@@ -5,7 +5,6 @@ import { LsChevron } from "../../assets/icons";
 import { Tooltip } from "../../common/Tooltip/Tooltip";
 import { useToggle } from "../../hooks/useToggle";
 import type { CNTagName } from "../../utils/bem";
-import { FF_DEV_4075, FF_PROD_309, isFF } from "../../utils/feature-flags";
 import { isArraysEqual } from "../../utils/utilities";
 import TreeStructure from "../TreeStructure/TreeStructure";
 
@@ -160,8 +159,6 @@ type HintTooltipProps = {
 };
 
 export const HintTooltip: React.FC<HintTooltipProps> = ({ title, wrapper: Wrapper, children, ...rest }) => {
-  if (!isFF(FF_PROD_309)) return children;
-
   const content = Wrapper ? <Wrapper>{children}</Wrapper> : children;
 
   if (title) {
@@ -239,13 +236,9 @@ const Item: React.FC<RowProps> = ({ style, item, dimensionCallback, maxWidth, is
     <div ref={itemContainer} style={{ paddingLeft: padding, maxWidth, ...style, width: "fit-content" }}>
       {!isAddingItem ? (
         <>
-          <div
-            className={[styles.taxonomy__measure, isFF(FF_DEV_4075) ? styles.taxonomy__measure_ff_dev4075 : false]
-              .filter(Boolean)
-              .join(" ")}
-          >
+          <div className={styles.taxonomy__measure}>
             <label>{name}</label>
-            {isFF(FF_DEV_4075) && !isFiltering && (
+            {!isFiltering && (
               <div className={styles.taxonomy__extra}>
                 <span className={styles.taxonomy__extra_count}>{childCount}</span>
               </div>
@@ -272,7 +265,6 @@ const Item: React.FC<RowProps> = ({ style, item, dimensionCallback, maxWidth, is
               />
               <label
                 htmlFor={id}
-                style={isFF(FF_DEV_4075) ? {} : { maxWidth: `${labelMaxWidth}px` }}
                 onClick={isEditable ? onClick : undefined}
                 title={title}
                 className={disabled ? styles.taxonomy__collapsable : undefined}

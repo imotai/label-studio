@@ -1,6 +1,6 @@
 import { inject } from "mobx-react";
 import { observer } from "mobx-react-lite";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { FaCaretDown, FaChevronLeft, FaColumns } from "react-icons/fa";
 import { Block, Elem } from "../../utils/bem";
 import { FF_DEV_1170, isFF } from "../../utils/feature-flags";
@@ -12,6 +12,7 @@ import { Space } from "../Common/Space/Space";
 import { DataView } from "../MainView";
 import "./Label.scss";
 
+// Todo: consider renaming this file to something like LabelingWrapper as it is not a Label component
 const LabelingHeader = ({ SDK, onClick, isExplorerMode }) => {
   return (
     <Elem name="header" mod={{ labelStream: !isExplorerMode }}>
